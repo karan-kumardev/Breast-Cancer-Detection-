@@ -4,3 +4,8 @@ torchvision
 pillow
 numpy
 pandas
+scikit-learn
+scikit-image
+matplotlib
+tqdm
+jupyter
