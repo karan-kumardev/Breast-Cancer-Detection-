@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Breast Cancer Detection</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="brand"><span class="dot"></span>Breast Cancer Detection</div>
+      <div class="muted small">Machine Learning project</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>Is this Cancer suspicious?</h1>
+      <p class="lead">Upload a mammogram and a ResNet18 model gives it a cancer score. The score is compared with a cut-off that was chosen to find at least 80% of cancers.</p>
+    </section>
+
+    <section class="grid">
+      <!-- left: upload -->
+      <div class="card">
+        <h2>1 · Choose an image</h2>
+
+        <label id="drop" class="drop" tabindex="0">
+          <input id="file" type="file" accept="image/*" hidden>
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+          <strong>Drop a mammogram here</strong>
+          <span class="muted small">or click to browse · JPG or PNG</span>
+        </label>
+
+        <div id="previewBox" class="preview" hidden>
+          <img id="preview" alt="Selected mammogram">
+          <button id="again" class="link" type="button">Choose another image</button>
+        </div>
+
+        {% if samples %}
+        <div class="samples">
+          <div class="label">Or try a sample from the test set</div>
+          <div class="thumbs">
+            {% for s in samples %}
+            <button class="thumb" type="button" data-label="{{ s.label }}" data-view="{{ s.view }}" aria-label="Sample {{ loop.index }}">
+              <img src="{{ url_for('static', filename='demo/' ~ s.file) }}" alt="Sample {{ loop.index }}">
+              <span>Sample {{ loop.index }}</span>
+            </button>
+            {% endfor %}
+          </div>
+          <p class="muted small">These images were never used for training. The true label is shown after the prediction.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- right: result -->
+      <div class="card" id="resultCard" aria-live="polite">
+        <h2>2 · Result</h2>
+
+        <div id="empty" class="state">
+          <p class="muted">No image yet. Choose an image on the left and the result will appear here.</p>
+        </div>
+
+        <div id="loading" class="state" hidden>
+          <div class="spinner"></div>
+          <p class="muted">Analysing…</p>
+        </div>
+
+        <div id="error" class="state" hidden>
+          <p class="err" id="errorText"></p>
+        </div>
+
+        <div id="result" hidden>
+          <div class="verdict-row">
+            <span id="verdict" class="pill"></span>
+            <span id="truth" class="truth" hidden></span>
+          </div>
+
+          <div class="score-line">
+            <span id="scoreNum" class="score">0%</span>
+            <span class="muted small">cancer score</span>
+          </div>
+
+          <div class="gauge" id="gauge">
+            <div class="tick" id="tick"><span id="tickLabel"></span></div>
+            <div class="marker" id="marker"></div>
+          </div>
+          <div class="gauge-legend small muted"><span>0%</span><span>100%</span></div>
+
+          <p id="explain" class="explain"></p>
+          <p class="note small muted">The score is the model's output, not a true probability. This is a classroom project and not a medical device.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="sec">How it works</h2>
+      <ol class="steps">
+        <li><b>Prepare</b><span>The image is turned grey and resized to 224 × 224 pixels, the same as the training images.</span></li>
+        <li><b>ResNet18</b><span>A network pretrained on everyday photos, then fine-tuned on mammograms, gives one score.</span></li>
+        <li><b>Compare</b><span>The score is compared with a cut-off of {{ (cutoff * 100)|round|int }}%, chosen on validation data so at least 80% of cancers are found.</span></li>
+        <li><b>Decide</b><span>Above the cut-off the image is flagged for review. Below it, it is not flagged.</span></li>
+      </ol>
+    </section>
+
+    <section class="block">
+      <h2 class="sec">How well does it work?</h2>
+      <p class="muted">Measured on 540 test images from patients the model never saw during training.</p>
+
+      <div class="tiles">
+        <div class="tile"><div class="num">0.70</div><div class="muted small">ROC-AUC<br>(0.5 = guessing)</div></div>
+        <div class="tile"><div class="num">81%</div><div class="muted small">of cancers found<br>(recall)</div></div>
+        <div class="tile"><div class="num">60%</div><div class="muted small">of flagged images are<br>really cancer (precision)</div></div>
+        <div class="tile"><div class="num">19%</div><div class="muted small">of cancers<br>still missed</div></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Model</th><th>Type</th><th>ROC-AUC</th><th>Recall</th><th>Precision</th></tr></thead>
+          <tbody>
+            {% for m in table %}
+            <tr class="{{ 'used' if m.used }}">
+              <td>{{ m.name }}{% if m.used %} <span class="badge">used here</span>{% endif %}</td>
+              <td>{{ m.family }}</td>
+              <td>{{ '%.2f'|format(m.auc) }}</td>
+              <td>{{ '%.0f'|format(m.recall * 100) }}%</td>
+              <td>{{ '%.0f'|format(m.precision * 100) }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="muted small">Every model uses a cut-off chosen on validation data to reach about 80% recall. The 95% ranges of the ROC-AUC values overlap, so the data does not show one model is clearly better than the others.</p>
+    </section>
+
+    <section class="block">
+      <h2 class="sec">Limitations</h2>
+      <ul class="limits">
+        <li><b>Modest accuracy.</b> At this cut-off about 1 in 5 cancers is missed and more than half of the benign images are flagged.</li>
+        <li><b>Small images.</b> Mammograms were shrunk to 224 × 224 pixels, so fine details are lost.</li>
+        <li><b>Possible shortcuts.</b> The model may react to brightness, tissue density or film labels instead of the tumour itself.</li>
+        <li><b>One dataset.</b> It was trained on Mini-DDSM only and has not been tested on images from other scanners or hospitals.</li>
+        <li><b>Not medical advice.</b> This is a classroom project. Never use it to make a health decision.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap small muted">
+      Dataset: Mini-DDSM (Lekamlage, Afzal, Westerberg, Cheddad, 2020), based on the DDSM database, CC BY-ND 4.0.<br>
+      Made by Karan Kumar and Muhammad Aman · Machine Learning
+    </div>
+  </footer>
+
+  <script>window.CUTOFF = {{ cutoff }};</script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+[
+  {
+    "file": "benign_1.jpg",
+    "label": "Benign",
+    "view": "RIGHT_MLO"
+  },
+  {
+    "file": "benign_2.jpg",
+    "label": "Benign",
+    "view": "LEFT_MLO"
+  },
+  {
+    "file": "cancer_1.jpg",
+    "label": "Cancer",
+    "view": "RIGHT_CC"
+  },
+  {
+    "file": "cancer_2.jpg",
+    "label": "Cancer",
+    "view": "LEFT_CC"
+  }
+]
