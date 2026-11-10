@@ -1,0 +1,6 @@
+model,accuracy,precision,recall,f1,roc_auc,cut-off
+baseline (majority class),0.504,0.504,1.0,0.67,0.5,0.5
+SVM,0.596,0.591,0.647,0.618,0.642,0.5
+SVM,0.611,0.584,0.794,0.673,0.642,0.47
+Random Forest,0.611,0.595,0.713,0.649,0.682,0.5
+Random Forest,0.598,0.573,0.798,0.667,0.682,0.46
