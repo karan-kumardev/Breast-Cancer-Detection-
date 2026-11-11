@@ -6,91 +6,58 @@
   <title>Breast Cancer Detection</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="private">
   <header class="top">
     <div class="wrap top-inner">
       <div class="brand"><span class="dot"></span>Breast Cancer Detection</div>
-      <div class="muted small">Machine Learning project</div>
+      <div class="head-right"><span class="muted small">Machine Learning project</span>
+        <button id="privacy" class="toggle" type="button" aria-pressed="true">Privacy mode: on</button></div>
     </div>
   </header>
 
   <main class="wrap">
     <section class="hero">
       <h1>Is this Cancer suspicious?</h1>
-      <p class="lead">Upload a mammogram and a ResNet18 model gives it a cancer score. The score is compared with a cut-off that was chosen to find at least 80% of cancers.</p>
+      <p class="lead">Four mammograms the model has never seen are scored by a ResNet18 model. Each score is compared with a cut-off that was chosen to find at least 80% of cancers.</p>
     </section>
 
-    <section class="grid">
-      <!-- left: upload -->
-      <div class="card">
-        <h2>1 · Choose an image</h2>
-
-        <label id="drop" class="drop" tabindex="0">
-          <input id="file" type="file" accept="image/*" hidden>
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0l-4 4m4-4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
-          <strong>Drop a mammogram here</strong>
-          <span class="muted small">or click to browse · JPG or PNG</span>
-        </label>
-
-        <div id="previewBox" class="preview" hidden>
-          <img id="preview" alt="Selected mammogram">
-          <button id="again" class="link" type="button">Choose another image</button>
+    <section class="demo">
+      <div class="demo-head">
+        <div>
+          <h2 class="sec">Live demo</h2>
+          <p class="muted">4 mammograms from the test set, never used for training. They are blurred for privacy, but the model scores the real image.</p>
         </div>
-
-        {% if samples %}
-        <div class="samples">
-          <div class="label">Or try a sample from the test set</div>
-          <div class="thumbs">
-            {% for s in samples %}
-            <button class="thumb" type="button" data-label="{{ s.label }}" data-view="{{ s.view }}" aria-label="Sample {{ loop.index }}">
-              <img src="{{ url_for('static', filename='demo/' ~ s.file) }}" alt="Sample {{ loop.index }}">
-              <span>Sample {{ loop.index }}</span>
-            </button>
-            {% endfor %}
-          </div>
-          <p class="muted small">These images were never used for training. The true label is shown after the prediction.</p>
-        </div>
-        {% endif %}
+        <button id="runAll" class="btn" type="button">Test all images</button>
       </div>
 
-      <!-- right: result -->
-      <div class="card" id="resultCard" aria-live="polite">
-        <h2>2 · Result</h2>
+      <div id="summary" class="summary" hidden></div>
 
-        <div id="empty" class="state">
-          <p class="muted">No image yet. Choose an image on the left and the result will appear here.</p>
-        </div>
-
-        <div id="loading" class="state" hidden>
-          <div class="spinner"></div>
-          <p class="muted">Analysing…</p>
-        </div>
-
-        <div id="error" class="state" hidden>
-          <p class="err" id="errorText"></p>
-        </div>
-
-        <div id="result" hidden>
-          <div class="verdict-row">
-            <span id="verdict" class="pill"></span>
-            <span id="truth" class="truth" hidden></span>
+      {% if samples %}
+      <div class="cards">
+        {% for s in samples %}
+        <article class="sample" data-file="{{ s.file }}">
+          <div class="shot"><img src="{{ url_for('static', filename='demo/' ~ s.file) }}" alt="Sample {{ loop.index }}"></div>
+          <div class="info">
+            <div class="row"><b>Sample {{ loop.index }}</b><span class="chip">Actual label: {{ s.label }}</span></div>
+            <div class="status muted small">Not tested yet</div>
+            <div class="out" hidden>
+              <span class="pill"></span>
+              <div class="score-line"><span class="score">0%</span><span class="muted small">cancer score</span></div>
+              <div class="gauge">
+                <div class="tick"><span></span></div>
+                <div class="marker"></div>
+              </div>
+              <div class="gauge-legend small muted"><span>0%</span><span>100%</span></div>
+              <p class="verdict-note small"></p>
+            </div>
           </div>
-
-          <div class="score-line">
-            <span id="scoreNum" class="score">0%</span>
-            <span class="muted small">cancer score</span>
-          </div>
-
-          <div class="gauge" id="gauge">
-            <div class="tick" id="tick"><span id="tickLabel"></span></div>
-            <div class="marker" id="marker"></div>
-          </div>
-          <div class="gauge-legend small muted"><span>0%</span><span>100%</span></div>
-
-          <p id="explain" class="explain"></p>
-          <p class="note small muted">The score is the model's output, not a true probability. This is a classroom project and not a medical device.</p>
-        </div>
+        </article>
+        {% endfor %}
       </div>
+      {% else %}
+      <p class="err">No sample images found. Run <code>python make_demo.py</code> once, then restart the app.</p>
+      {% endif %}
+      <p class="note small muted">The score is the model's output, not a true probability. This is a classroom project and not a medical device.</p>
     </section>
 
     <section class="block">

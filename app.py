@@ -1,9 +1,11 @@
-"""Breast cancer detection Live demo (Flask).
+"""Breast cancer detection demo (Flask).
 
-The page lets you upload a mammogram (or click a sample). The image is prepared
-exactly like the training images, the fine-tuned ResNet18 gives a cancer score
-between 0 and 1, and the score is compared with the cut-off chosen on the
-validation set.
+Run:  python app.py      then open  http://127.0.0.1:5000
+
+The page shows 4 sample mammograms from the test set (blurred, with their true
+label). One click scores all of them: each image is prepared exactly like the
+training images, the fine-tuned ResNet18 gives a cancer score between 0 and 1,
+and the score is compared with the cut-off chosen on the validation set.
 """
 import json
 from io import BytesIO
@@ -12,7 +14,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template
 from PIL import Image
 from torchvision import models, transforms
 
@@ -32,7 +34,6 @@ MODEL_TABLE = [
 ]
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024      # 25 MB upload limit
 
 # ---------------------------------------------------------------- model
 if not MODEL_FILE.exists():
@@ -72,16 +73,14 @@ def index():
     return render_template("index.html", samples=load_samples(), cutoff=CUTOFF, table=MODEL_TABLE)
 
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    file = request.files.get("image")
-    if file is None or file.filename == "":
-        return jsonify(error="No image was sent."), 400
-    try:
-        score = cancer_score(file.read())
-    except Exception:
-        return jsonify(error="This file could not be read as an image. Please upload a JPG or PNG."), 400
-    return jsonify(score=score, cutoff=CUTOFF, flagged=score >= CUTOFF)
+@app.route("/predict_all", methods=["POST"])
+def predict_all():
+    """Score every sample image in static/demo and say which ones cross the cut-off."""
+    results = []
+    for s in load_samples():
+        score = cancer_score((DEMO_DIR / s["file"]).read_bytes())
+        results.append({"file": s["file"], "label": s["label"], "score": score, "flagged": score >= CUTOFF})
+    return jsonify(results=results, cutoff=CUTOFF)
 
 
 if __name__ == "__main__":
